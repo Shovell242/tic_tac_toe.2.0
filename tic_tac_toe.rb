@@ -5,24 +5,24 @@ class Player
 		get_player_names
 	end
 
+	def both_players
+		[:player1, :player2]
+	end
+
 	def get_player_names
 		puts "Player 1. Please enter your name"
 		@player1 = gets.chomp
 		puts "Player 2. Please enter your name"
 		@player2 = gets.chomp
 	end
-
-	def both_players
-		[:player1, :player2]
-	end
 end
 
 class GamePieces
-	attr_reader :player1_piece, :player2_piece
+	attr_reader :player1, :player2
 
 	def initialize(args = {})
-		@player1_piece = args.fetch(:p1_symbol, "X")
-		@player2_piece = args.fetch(:p2_symbol, "O")
+		@player1 = args.fetch(:p1_symbol, "X")
+		@player2 = args.fetch(:p2_symbol, "O")
 	end
 end
 
@@ -42,6 +42,12 @@ class GameBoard
 		BOARD[key - 1] = piece
 	end
 
+	def game_over
+		winner? || draw?
+	end
+
+	private
+
 	def winner?
 		WINNING_COMBOS.each do |combos|
 			return true if win_test(combos)
@@ -50,7 +56,13 @@ class GameBoard
 	end
 
 	def win_test(array)
-		array.reduce([]) { |arr, x| arr << BOARD[x]; arr }.all? { |x| x == x[0] }
+		arr = []
+		array.each { |x| arr << BOARD[x] }
+		arr.all? { |x| x == arr[0] }
+	end
+
+	def draw?
+		BOARD.all? { |x| x.is_a? String }
 	end
 end
 
@@ -70,18 +82,17 @@ class PlayGame
 	end
 
 	def game_flow
-		until game_board.winner?
-			players.both_players.each do |player|
-				game_board.display_board
-				game_board.place_gamepiece(get_user_move(player), "X")
-			end
+		catch :winner! do
+			loop do
+				players.both_players.each do |player|
+					game_board.display_board
+					game_board.place_gamepiece(get_user_move(players.send(player)), game_pieces.send(player))
+					throw :winner! if game_board.game_over
+				end
+			end	
 		end
 	end
-
-
 end
-
-
 
 PlayGame.new(players: Player.new, game_board: GameBoard.new, game_pieces: GamePieces.new)
 
